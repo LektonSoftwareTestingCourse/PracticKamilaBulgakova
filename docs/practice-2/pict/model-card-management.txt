@@ -1,0 +1,12 @@
+operation:           create, get, update, reserve
+pan_state:           existing_valid, nonexistent, invalid_format
+expiry_date:         future_mmyy, expired_mmyy, invalid_format
+card_status:         ACTIVE, INACTIVE, BLOCKED, DELETED
+amount_vs_balance:   below, equal, above
+request_body:        valid, missing_required, partial_update
+
+# Ограничения
+IF [operation] = "reserve" THEN [pan_state] = "existing_valid"
+    AND [card_status] = "ACTIVE" AND [amount_vs_balance] <> "above"
+    AND [request_body] = "valid";
+IF [operation] = "create" THEN [request_body] <> "partial_update";
