@@ -26,6 +26,8 @@
     <!-- Общие свойства для всех модулей -->
     <properties>
         <java.version>21</java.version>
+        <jacoco.version>0.8.14</jacoco.version>
+        <jacocoArgLine></jacocoArgLine>
         <springdoc.version>2.7.0</springdoc.version>
         <lombok.version>1.18.38</lombok.version>
         <checkstyle.version>3.6.0</checkstyle.version>
@@ -183,6 +185,42 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                    <configuration>
+                        <propertyName>jacocoArgLine</propertyName>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                            <configuration>
+                                <formats>
+                                    <format>HTML</format>
+                                    <format>XML</format>
+                                </formats>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <argLine>@{jacocoArgLine}</argLine>
+                    </configuration>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <configuration>
@@ -216,6 +254,7 @@
                     </executions>
                     <configuration>
                         <configLocation>checkstyle.xml</configLocation>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
                         <excludeGeneratedSources>true</excludeGeneratedSources>
                         <excludes>**/target/**</excludes>
                         <consoleOutput>true</consoleOutput>
