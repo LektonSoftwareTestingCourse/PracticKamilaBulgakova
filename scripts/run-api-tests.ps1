@@ -50,6 +50,8 @@ function Invoke-ApiSuite {
 function Invoke-BrokerOutageSuite {
     Write-Host 'API test phase: broker-outage'
     $signals = Join-Path $results "run-$run/broker"
+    # The host must own this directory so it can write its signal after the container starts the test.
+    New-Item -ItemType Directory -Path $signals -Force | Out-Null
     $arguments = Get-ApiSuiteArguments 'broker-outage' 'broker-outage'
     Invoke-Docker ($compose + @('stop', '--timeout', '3', 'rabbitmq'))
     $job = Start-ThreadJob -ArgumentList (,$arguments) -ScriptBlock {
