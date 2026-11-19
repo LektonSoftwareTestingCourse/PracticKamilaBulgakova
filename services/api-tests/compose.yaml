@@ -1,0 +1,101 @@
+# Test containers use a project-local network and never bind host ports.
+x-java-environment: &java-environment
+  JAVA_TOOL_OPTIONS: "-XX:ActiveProcessorCount=2 -XX:TieredStopAtLevel=1 -Xms32m -Xmx256m"
+
+x-java-health: &java-health
+  start_period: 180s
+  interval: 5s
+  timeout: 10s
+
+services:
+  postgres:
+    container_name: !reset null
+    ports: !reset []
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${DB_USER} -d ${DB_NAME}"]
+      start_period: 60s
+      interval: 5s
+  rabbitmq:
+    container_name: !reset null
+    ports: !reset []
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 2:2 +A 4"
+    volumes:
+      - practice5_rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo >/dev/tcp/127.0.0.1/5672"]
+      start_period: 60s
+      interval: 5s
+      timeout: 20s
+      retries: 8
+  gateway:
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      <<: *java-environment
+      SWITCH_URL: ${PRACTICE5_SWITCH_URL:-http://switch:8080}
+      CARD_MGMT_URL: ${PRACTICE5_GATEWAY_CARD_URL:-http://card-management:8080}
+      LOGGER_URL: ${PRACTICE5_LOGGER_URL:-http://transaction-logger:8080}
+      TERMINAL_SIM_URL: ${PRACTICE5_TERMINAL_URL:-http://terminal-simulator:8080}
+      MERCHANT_SIM_URL: ${PRACTICE5_MERCHANT_URL:-http://merchant-acquirer:8080}
+      CIRCUIT_BREAKER_FAILURE_THRESHOLD: ${PRACTICE5_CIRCUIT_BREAKER_THRESHOLD:-3}
+    healthcheck:
+      <<: *java-health
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+  card-management:
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      <<: *java-environment
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 3000
+    healthcheck: *java-health
+  switch:
+    container_name: !reset null
+    ports: !reset []
+    environment: *java-environment
+    healthcheck: *java-health
+  authorization:
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      <<: *java-environment
+      CARD_MGMT_URL: ${PRACTICE5_CARD_MGMT_URL:-http://card-management:8080}
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 3000
+    healthcheck: *java-health
+  bin-lookup:
+    container_name: !reset null
+    ports: !reset []
+    environment: *java-environment
+    healthcheck: *java-health
+  merchant-acquirer:
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      <<: *java-environment
+      GATEWAY_URL: ${PRACTICE5_MERCHANT_GATEWAY_URL:-http://gateway:8080}
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 3000
+    healthcheck: *java-health
+  terminal-simulator:
+    scale: 1
+    ports: !reset []
+    environment:
+      <<: *java-environment
+      CARD_MGMT_URL: ${PRACTICE5_TERMINAL_CARD_MGMT_URL:-http://card-management:8080}
+    healthcheck: *java-health
+  transaction-logger:
+    container_name: !reset null
+    ports: !reset []
+    environment:
+      <<: *java-environment
+      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 3000
+    healthcheck: *java-health
+  card-management-faults:
+    image: nginx:1.28.2-alpine
+    profiles: [authorization-faults]
+    volumes:
+      - ./services/api-tests/card-management-faults.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [smp-network]
+
+volumes:
+  practice5_rabbitmq:

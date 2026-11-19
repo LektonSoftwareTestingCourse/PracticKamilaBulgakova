@@ -27,7 +27,11 @@ repos:
   - id: check-yaml
     name: "Check YAML syntax"
     args: [ --allow-multiple ]
-    exclude: ^starters/java/target/
+    exclude: ^(starters/java/target/|services/api-tests/compose\.yaml$)
+  - id: check-yaml
+    name: "Check API test Compose YAML syntax"
+    args: [ --unsafe ]
+    files: ^services/api-tests/compose\.yaml$
   - id: check-json
     name: "Check JSON syntax"
   - id: check-merge-conflict

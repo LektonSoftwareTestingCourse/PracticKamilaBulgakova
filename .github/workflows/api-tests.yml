@@ -1,0 +1,26 @@
+name: Practice 5 API tests
+
+on:
+  push:
+    branches: [practice-5-bulgakova]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run API tests on Docker Compose
+        shell: pwsh
+        run: ./scripts/run-api-tests.ps1
+      - name: Save JUnit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: practice-5-api-test-results
+          path: services/api-tests/target/runs/*/surefire-reports/
+          if-no-files-found: ignore
